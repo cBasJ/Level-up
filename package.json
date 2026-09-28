@@ -1,0 +1,1 @@
+{"name":"tractor-card-game","version":"1.0.0","private":true,"scripts":{"test":"node --test tests/*.test.cjs","start":"node server.cjs"},"devDependencies":{"@playwright/test":"^1.63.0"}}
