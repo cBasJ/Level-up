@@ -1,5 +1,11 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),E=require('../engine.js');
 const ctx={level:2,trump:'H'};
+test('emptying a side suit never reorders the remaining suit groups',()=>{
+ for(const trump of [...E.SUITS,'NT']){
+  const ctx={level:2,trump},hand=E.deck().filter(c=>c.r===9),original=E.sort(hand,ctx);
+  for(const removed of E.SUITS){const remaining=hand.filter(c=>c.s!==removed);assert.deepEqual(E.sort(remaining,ctx).map(c=>c.id),original.filter(c=>c.s!==removed).map(c=>c.id));}
+ }
+});
 test('side suit groups alternate colors whenever both colors are available',()=>{
  for(const trump of [...E.SUITS,'NT']){
   const d=E.deck().filter(c=>c.r===9),sorted=E.sort(d,{level:2,trump});

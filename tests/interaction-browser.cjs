@@ -3,7 +3,7 @@ const {chromium}=require('@playwright/test');const assert=require('node:assert/s
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1600,height:900},hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));await page.goto('http://127.0.0.1:4173/?normal=1');fs.mkdirSync('artifacts',{recursive:true});
+  await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));await page.goto('http://127.0.0.1:4173/index.html?normal=1');fs.mkdirSync('artifacts',{recursive:true});
   async function fixture(options){return page.evaluate(opts=>{
    newGame();clearTimers();selected.clear();pairSelection=true;
    const pool=E.deck();const take=spec=>{const index=pool.findIndex(c=>c.s===spec[0]&&c.r===spec[1]);if(index<0)throw Error('Duplicate fixture card');return pool.splice(index,1)[0];};
@@ -130,7 +130,7 @@ const {chromium}=require('@playwright/test');const assert=require('node:assert/s
   await page.screenshot({path:'artifacts/final-bid-avatar.png',fullPage:true});
   const beforeSwitch=await page.evaluate(()=>JSON.stringify(state.hands));await clickSetting('testDealToggle');assert.equal(await page.evaluate(()=>JSON.stringify(state.hands)),beforeSwitch);
   assert.equal(await page.locator('#testDealToggle').getAttribute('aria-pressed'),'true');
-  await page.goto('http://127.0.0.1:4173');assert.equal(await page.locator('#testDealToggle').getAttribute('aria-pressed'),'true');
+  await page.goto('http://127.0.0.1:4173/index.html');assert.equal(await page.locator('#testDealToggle').getAttribute('aria-pressed'),'true');
   await clickSetting('testDealToggle');await page.reload();assert.equal(await page.locator('#testDealToggle').getAttribute('aria-pressed'),'false');
   // Real touch gestures work on the rotated portrait game, including cancelled touches.
   await page.setViewportSize({width:390,height:844});cards=await fixture({hand});await page.evaluate(()=>{pairSelection=false;syncHandSelection();});

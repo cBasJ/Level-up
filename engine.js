@@ -23,7 +23,8 @@
     return c.r - 2 - (c.r > ctx.level ? 1 : 0);
   }
   function sort(cards,ctx) {
-    const available=SUITS.filter(s=>cards.some(c=>category(c,ctx)===s));
+    // Establish the suit order from trump alone, never from remaining cards.
+    const available=SUITS.filter(s=>s!==ctx.trump);
     const black=available.filter(s=>s==='S'||s==='C'),red=available.filter(s=>s==='H'||s==='D');
     let nextBlack=black.length===red.length?['H','D','NT',null,undefined].includes(ctx.trump):black.length>red.length;
     const order=['T'];while(black.length||red.length){const preferred=nextBlack?black:red,other=nextBlack?red:black;order.push((preferred.length?preferred:other).shift());nextBlack=!nextBlack;}

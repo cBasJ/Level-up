@@ -1,1 +1,26 @@
-{"name":"tractor-card-game","version":"1.0.0","private":true,"scripts":{"test":"node --test tests/*.test.cjs","start":"node server.cjs"},"devDependencies":{"@playwright/test":"^1.63.0"}}
+{
+  "name": "tractor-card-game",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "start": "tsx backend/server.ts",
+    "start:offline": "node server.cjs",
+    "typecheck": "tsc",
+    "test:online": "tsx --test tests/online.test.ts",
+    "test:online:browser": "tsx tests/online-browser.ts",
+    "test:portal:browser": "tsx tests/portal-browser.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.3",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "engines": {"node": ">=24"},
+  "dependencies": {
+    "fastify": "^5.12.5",
+    "ws": "^8.22.0"
+  }
+}

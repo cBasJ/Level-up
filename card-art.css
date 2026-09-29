@@ -1,0 +1,19 @@
+/* Every surface keeps the same 2:3 poker ratio. Only its width changes. */
+.card.image-card{--face-width:88px;width:var(--face-width)!important;height:auto!important;aspect-ratio:2/3!important;flex:0 0 var(--face-width);min-height:0;padding:0!important;font-size:0!important;background:#fffaf0!important;border:1px solid #b4a681!important;border-radius:6px;box-sizing:border-box;overflow:hidden}
+.card.image-card>.card-face{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none}
+.card.image-card>.rank,.card.image-card>.suit,.card.image-card>.big-suit,.card.image-card>.point-mark{display:none!important}
+.card.image-card>.stars,.card.image-card>.trump-mark,.card.image-card>.mark,.card.image-card>.new,.card.image-card>.tractor-mark,.card.image-card>.throw-mark,.card.image-card>.bottom-pick-mark{z-index:2}
+.played .card.image-card,#plays .card.image-card{--face-width:88px}
+.compact .played .card.image-card,.compact #plays .card.image-card{--face-width:88px}
+.bid-cards .card.image-card,.auction-feature .bid-cards .card.image-card{--face-width:44px}
+.final-bid .card.image-card{--face-width:26px}
+.bottom-cards .card.image-card,#bottomReveal .card.image-card{--face-width:54px}
+.card.image-card.selected{outline:2px solid #ffd675;outline-offset:-2px}
+.played.is-winning .card.image-card{outline:2px solid #ffdb72;outline-offset:-2px}
+.card.image-card.forced-card:after{z-index:3}
+.deck-stack i{background:url('assets/cards/back.png') center/contain no-repeat;color:transparent;border:0;aspect-ratio:2/3}
+
+/* Separate trick lanes leave full-size faces clear of avatars and controls. */
+.played.north-play,.played.south-play,#plays>.play-2,#plays>.play-0{max-width:480px}
+.played.west-play,.played.east-play,#plays>.play-1,#plays>.play-3{max-width:320px}
+.played.north-play .winner-badge,.played.south-play .winner-badge,#plays>.play-2.winner:after,#plays>.play-0.winner:after{left:50%;top:-29px;transform:translateX(-50%)}

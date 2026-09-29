@@ -1,0 +1,630 @@
+{
+  "female": [
+    {
+      "text": "亮主",
+      "file": "bid.wav",
+      "start": 0.52,
+      "end": 1.15
+    },
+    {
+      "text": "自保",
+      "file": "reinforce.wav",
+      "start": 1.55,
+      "end": 2.07
+    },
+    {
+      "text": "反主",
+      "file": "counter.wav",
+      "start": 2.62,
+      "end": 3.06
+    },
+    {
+      "text": "大王无主",
+      "file": "big-joker-nt.wav",
+      "start": 3.22,
+      "end": 3.99
+    },
+    {
+      "text": "小王无主",
+      "file": "small-joker-nt.wav",
+      "start": 4.19,
+      "end": 5.01
+    },
+    {
+      "text": "二",
+      "file": "single-2.wav",
+      "start": 5.58,
+      "end": 5.82
+    },
+    {
+      "text": "三",
+      "file": "single-3.wav",
+      "start": 6.23,
+      "end": 6.72
+    },
+    {
+      "text": "四",
+      "file": "single-4.wav",
+      "start": 7.13,
+      "end": 7.48
+    },
+    {
+      "text": "五",
+      "file": "single-5.wav",
+      "start": 8.01,
+      "end": 8.27
+    },
+    {
+      "text": "六",
+      "file": "single-6.wav",
+      "start": 8.87,
+      "end": 9.12
+    },
+    {
+      "text": "七",
+      "file": "single-7.wav",
+      "start": 9.66,
+      "end": 10.0
+    },
+    {
+      "text": "八",
+      "file": "single-8.wav",
+      "start": 10.45,
+      "end": 10.73
+    },
+    {
+      "text": "九",
+      "file": "single-9.wav",
+      "start": 11.21,
+      "end": 11.51
+    },
+    {
+      "text": "十",
+      "file": "single-10.wav",
+      "start": 12.06,
+      "end": 12.59
+    },
+    {
+      "text": "勾",
+      "file": "single-11.wav",
+      "start": 12.84,
+      "end": 13.24
+    },
+    {
+      "text": "圈",
+      "file": "single-12.wav",
+      "start": 13.54,
+      "end": 13.87
+    },
+    {
+      "text": "K",
+      "file": "single-13.wav",
+      "start": 14.18,
+      "end": 14.58
+    },
+    {
+      "text": "尖",
+      "file": "single-14.wav",
+      "start": 14.8,
+      "end": 15.23
+    },
+    {
+      "text": "小王",
+      "file": "single-15.wav",
+      "start": 15.51,
+      "end": 16.03
+    },
+    {
+      "text": "大王",
+      "file": "single-16.wav",
+      "start": 16.2,
+      "end": 16.72
+    },
+    {
+      "text": "对二",
+      "file": "pair-2.wav",
+      "start": 17.61,
+      "end": 18.03
+    },
+    {
+      "text": "对三",
+      "file": "pair-3.wav",
+      "start": 18.35,
+      "end": 18.94
+    },
+    {
+      "text": "对四",
+      "file": "pair-4.wav",
+      "start": 19.38,
+      "end": 19.87
+    },
+    {
+      "text": "对五",
+      "file": "pair-5.wav",
+      "start": 20.51,
+      "end": 21.19
+    },
+    {
+      "text": "对六",
+      "file": "pair-6.wav",
+      "start": 21.81,
+      "end": 22.46
+    },
+    {
+      "text": "对七",
+      "file": "pair-7.wav",
+      "start": 23.11,
+      "end": 23.74
+    },
+    {
+      "text": "对八",
+      "file": "pair-8.wav",
+      "start": 24.39,
+      "end": 24.98
+    },
+    {
+      "text": "对九",
+      "file": "pair-9.wav",
+      "start": 25.76,
+      "end": 26.42
+    },
+    {
+      "text": "对十",
+      "file": "pair-10.wav",
+      "start": 27.09,
+      "end": 27.85
+    },
+    {
+      "text": "对勾",
+      "file": "pair-11.wav",
+      "start": 28.13,
+      "end": 28.54
+    },
+    {
+      "text": "对圈",
+      "file": "pair-12.wav",
+      "start": 28.92,
+      "end": 29.53
+    },
+    {
+      "text": "对K",
+      "file": "pair-13.wav",
+      "start": 29.78,
+      "end": 30.37
+    },
+    {
+      "text": "对尖",
+      "file": "pair-14.wav",
+      "start": 30.62,
+      "end": 31.29
+    },
+    {
+      "text": "对小王",
+      "file": "pair-15.wav",
+      "start": 31.53,
+      "end": 32.39
+    },
+    {
+      "text": "对大王",
+      "file": "pair-16.wav",
+      "start": 32.7,
+      "end": 33.76
+    },
+    {
+      "text": "调主",
+      "file": "trump-lead.wav",
+      "start": 34.23,
+      "end": 35.09
+    },
+    {
+      "text": "拖拉机",
+      "file": "tractor.wav",
+      "start": 35.84,
+      "end": 36.69
+    },
+    {
+      "text": "大你",
+      "file": "beat.wav",
+      "start": 37.39,
+      "end": 38.28
+    },
+    {
+      "text": "跟牌",
+      "file": "follow.wav",
+      "start": 39.1,
+      "end": 39.73
+    },
+    {
+      "text": "毙了",
+      "file": "cut.wav",
+      "start": 40.47,
+      "end": 41.02
+    },
+    {
+      "text": "盖毙",
+      "file": "overcut.wav",
+      "start": 41.74,
+      "end": 42.52
+    },
+    {
+      "text": "甩牌",
+      "file": "throw.wav",
+      "start": 43.34,
+      "end": 43.96
+    },
+    {
+      "text": "边三轮",
+      "file": "pair-and-single.wav",
+      "start": 44.28,
+      "end": 44.99
+    },
+    {
+      "text": "甩三张",
+      "file": "throw-3.wav",
+      "start": 45.67,
+      "end": 46.49
+    },
+    {
+      "text": "甩四张",
+      "file": "throw-4.wav",
+      "start": 46.76,
+      "end": 47.52
+    },
+    {
+      "text": "甩五张",
+      "file": "throw-5.wav",
+      "start": 47.82,
+      "end": 48.62
+    },
+    {
+      "text": "甩六张",
+      "file": "throw-6.wav",
+      "start": 48.86,
+      "end": 49.56
+    },
+    {
+      "text": "甩七张",
+      "file": "throw-7.wav",
+      "start": 49.84,
+      "end": 50.58
+    },
+    {
+      "text": "甩八张",
+      "file": "throw-8.wav",
+      "start": 50.79,
+      "end": 51.66
+    },
+    {
+      "text": "甩九张",
+      "file": "throw-9.wav",
+      "start": 52.47,
+      "end": 53.15
+    },
+    {
+      "text": "甩十张",
+      "file": "throw-10.wav",
+      "start": 53.35,
+      "end": 54.1
+    },
+    {
+      "text": "超级甩牌",
+      "file": "super-throw.wav",
+      "start": 54.67,
+      "end": 55.46
+    }
+  ],
+  "male": [
+    {
+      "text": "亮主",
+      "file": "bid.wav",
+      "start": 0.36,
+      "end": 0.79
+    },
+    {
+      "text": "自保",
+      "file": "reinforce.wav",
+      "start": 1.41,
+      "end": 2.43
+    },
+    {
+      "text": "反主",
+      "file": "counter.wav",
+      "start": 3.24,
+      "end": 3.98
+    },
+    {
+      "text": "大王无主",
+      "file": "big-joker-nt.wav",
+      "start": 4.45,
+      "end": 5.64
+    },
+    {
+      "text": "小王无主",
+      "file": "small-joker-nt.wav",
+      "start": 6.05,
+      "end": 7.36
+    },
+    {
+      "text": "二",
+      "file": "single-2.wav",
+      "start": 8.08,
+      "end": 8.33
+    },
+    {
+      "text": "三",
+      "file": "single-3.wav",
+      "start": 9.24,
+      "end": 9.78
+    },
+    {
+      "text": "四",
+      "file": "single-4.wav",
+      "start": 10.59,
+      "end": 11.03
+    },
+    {
+      "text": "五",
+      "file": "single-5.wav",
+      "start": 11.94,
+      "end": 12.34
+    },
+    {
+      "text": "六",
+      "file": "single-6.wav",
+      "start": 13.22,
+      "end": 13.65
+    },
+    {
+      "text": "七",
+      "file": "single-7.wav",
+      "start": 14.49,
+      "end": 15.08
+    },
+    {
+      "text": "八",
+      "file": "single-8.wav",
+      "start": 15.88,
+      "end": 16.36
+    },
+    {
+      "text": "九",
+      "file": "single-9.wav",
+      "start": 17.14,
+      "end": 17.82
+    },
+    {
+      "text": "十",
+      "file": "single-10.wav",
+      "start": 18.75,
+      "end": 19.3
+    },
+    {
+      "text": "勾",
+      "file": "single-11.wav",
+      "start": 20.0,
+      "end": 20.45
+    },
+    {
+      "text": "圈",
+      "file": "single-12.wav",
+      "start": 21.28,
+      "end": 21.72
+    },
+    {
+      "text": "K",
+      "file": "single-13.wav",
+      "start": 22.53,
+      "end": 23.01
+    },
+    {
+      "text": "尖",
+      "file": "single-14.wav",
+      "start": 23.86,
+      "end": 24.39
+    },
+    {
+      "text": "小王",
+      "file": "single-15.wav",
+      "start": 25.07,
+      "end": 25.82
+    },
+    {
+      "text": "大王",
+      "file": "single-16.wav",
+      "start": 26.66,
+      "end": 27.35
+    },
+    {
+      "text": "对二",
+      "file": "pair-2.wav",
+      "start": 28.08,
+      "end": 28.57
+    },
+    {
+      "text": "对三",
+      "file": "pair-3.wav",
+      "start": 29.35,
+      "end": 29.94
+    },
+    {
+      "text": "对四",
+      "file": "pair-4.wav",
+      "start": 30.67,
+      "end": 31.15
+    },
+    {
+      "text": "对五",
+      "file": "pair-5.wav",
+      "start": 31.86,
+      "end": 32.37
+    },
+    {
+      "text": "对六",
+      "file": "pair-6.wav",
+      "start": 32.99,
+      "end": 33.57
+    },
+    {
+      "text": "对七",
+      "file": "pair-7.wav",
+      "start": 34.09,
+      "end": 34.72
+    },
+    {
+      "text": "对八",
+      "file": "pair-8.wav",
+      "start": 35.45,
+      "end": 36.0
+    },
+    {
+      "text": "对九",
+      "file": "pair-9.wav",
+      "start": 36.74,
+      "end": 37.36
+    },
+    {
+      "text": "对十",
+      "file": "pair-10.wav",
+      "start": 38.01,
+      "end": 38.73
+    },
+    {
+      "text": "对勾",
+      "file": "pair-11.wav",
+      "start": 39.49,
+      "end": 40.13
+    },
+    {
+      "text": "对圈",
+      "file": "pair-12.wav",
+      "start": 40.95,
+      "end": 41.56
+    },
+    {
+      "text": "对K",
+      "file": "pair-13.wav",
+      "start": 42.25,
+      "end": 42.84
+    },
+    {
+      "text": "对尖",
+      "file": "pair-14.wav",
+      "start": 43.45,
+      "end": 44.1
+    },
+    {
+      "text": "对小王",
+      "file": "pair-15.wav",
+      "start": 44.89,
+      "end": 45.75
+    },
+    {
+      "text": "对大王",
+      "file": "pair-16.wav",
+      "start": 46.33,
+      "end": 47.29
+    },
+    {
+      "text": "调主",
+      "file": "trump-lead.wav",
+      "start": 47.98,
+      "end": 48.71
+    },
+    {
+      "text": "拖拉机",
+      "file": "tractor.wav",
+      "start": 49.41,
+      "end": 50.09
+    },
+    {
+      "text": "大你",
+      "file": "beat.wav",
+      "start": 50.7,
+      "end": 51.47
+    },
+    {
+      "text": "跟牌",
+      "file": "follow.wav",
+      "start": 52.25,
+      "end": 52.73
+    },
+    {
+      "text": "毙了",
+      "file": "cut.wav",
+      "start": 53.43,
+      "end": 53.85
+    },
+    {
+      "text": "盖毙",
+      "file": "overcut.wav",
+      "start": 54.3,
+      "end": 54.74
+    },
+    {
+      "text": "甩牌",
+      "file": "throw.wav",
+      "start": 55.2,
+      "end": 55.64
+    },
+    {
+      "text": "边三轮",
+      "file": "pair-and-single.wav",
+      "start": 56.23,
+      "end": 56.74
+    },
+    {
+      "text": "甩三张",
+      "file": "throw-3.wav",
+      "start": 57.5,
+      "end": 58.47
+    },
+    {
+      "text": "甩四张",
+      "file": "throw-4.wav",
+      "start": 58.89,
+      "end": 59.57
+    },
+    {
+      "text": "甩五张",
+      "file": "throw-5.wav",
+      "start": 59.97,
+      "end": 60.71
+    },
+    {
+      "text": "甩六张",
+      "file": "throw-6.wav",
+      "start": 61.09,
+      "end": 61.99
+    },
+    {
+      "text": "甩七张",
+      "file": "throw-7.wav",
+      "start": 62.37,
+      "end": 63.18
+    },
+    {
+      "text": "甩八张",
+      "file": "throw-8.wav",
+      "start": 63.59,
+      "end": 64.58
+    },
+    {
+      "text": "甩九张",
+      "file": "throw-9.wav",
+      "start": 65.1,
+      "end": 66.11
+    },
+    {
+      "text": "甩十张",
+      "file": "throw-10.wav",
+      "start": 66.35,
+      "end": 67.24
+    },
+    {
+      "text": "超级甩牌",
+      "file": "super-throw.wav",
+      "start": 67.87,
+      "end": 68.97
+    }
+  ]
+}

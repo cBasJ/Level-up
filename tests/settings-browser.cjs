@@ -3,7 +3,7 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1600,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));await page.goto('http://127.0.0.1:4173/?normal=1');
+  await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));await page.goto('http://127.0.0.1:4173/index.html?normal=1');
   await page.locator('#settingsBtn').click();assert.equal(await page.locator('#settings .hint-controls button').count(),3);
   await page.locator('#startingLevel').selectOption('14');await page.screenshot({path:'artifacts/settings-panel.png',fullPage:true});await page.locator('#applySettings').click();
   assert.deepEqual(await page.evaluate(()=>({levels,round,level:state.level,score:state.score})),{levels:[14,2],round:1,level:14,score:0});

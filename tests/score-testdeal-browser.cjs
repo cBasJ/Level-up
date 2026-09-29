@@ -3,12 +3,12 @@ const {chromium}=require('@playwright/test');const assert=require('node:assert/s
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1600,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));await page.goto('http://127.0.0.1:4173');
+  await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));await page.goto('http://127.0.0.1:4173/index.html');
   assert.match(await page.locator('.local-label').textContent(),/测试发牌/);
   assert.equal(await page.evaluate(()=>{
    clearTimers();
    for(let level=2;level<=14;level++)for(let start=0;start<4;start++)for(let n=0;n<8;n++){
-    const cards=prepareTestDeal(E.deck(),start,level),hand=cards.slice(0,100).filter((c,i)=>(start+i)%4===0);
+    const cards=prepareTestDeal(E.deck(),start,level),hand=cards.slice(0,100).filter((c,i)=>(start+3*i)%4===0);
     if(cards.length!==108||new Set(cards.map(c=>c.id)).size!==108||hand.length!==25||!hand.some(c=>c.s==='J'&&c.r===16))return false;
     for(const trump of [...E.SUITS,'NT'])if(E.tractorIds(hand,{level,trump}).size<4)return false;
    }return true;
