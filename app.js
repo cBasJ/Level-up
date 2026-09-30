@@ -46,10 +46,10 @@ function scoreChime(threshold,delay=0){
 }
 function addScore(points){
   const before=state.score;state.score+=points;
-  const crossed=[80,120,180].filter(n=>before<n&&state.score>=n);
-  crossed.forEach((threshold,i)=>{scoreChime(threshold,i*.9);log('抓分达到 '+threshold+' 分！');});
+  const crossed=[80,120,160].filter(n=>before<n&&state.score>=n);
+  crossed.forEach((threshold,i)=>{window.GameAudio?.score(threshold);log('抓分达到 '+threshold+' 分！');});
   if(crossed.includes(80)){
-    const effect=$('scoreCelebration');effect.textContent='抓分突破 80 分！';effect.classList.remove('show');void effect.offsetWidth;effect.classList.add('show');
+    const effect=$('scoreCelebration');effect.textContent='破80';effect.classList.remove('show');void effect.offsetWidth;effect.classList.add('show');
     clearTimeout(scoreEffectTimer);scoreEffectTimer=setTimeout(()=>effect.classList.remove('show'),2400);
   }
 }
@@ -63,7 +63,7 @@ function prepareTestDeal(cards,start,level){
 }
 let levels=[2,2],dealer=0,round=1,state,selected=new Set();
 let timer,dealTimer,botBidTimer,auctionTimer;
-let selectionGesture=null,pairSelection=true,replaySnapshot=null,replayTimer;
+let selectionGesture=null,pairSelection=localStorage.getItem('tractor-pair-selection')!=='false',replaySnapshot=null,replayTimer;
 const auctionOpen=()=>['dealing','bidding'].includes(state.phase);
 const modalOpen=()=>!!document.querySelector('dialog[open]');
 const trumpName=trump=>trump==='NT'?'无主':trump?E.symbol[trump]+' 主':'待定';
@@ -122,17 +122,16 @@ function syncHandSelection(){
   for(const id of forcedSelection)selected.add(id);
   enforceForcedSelection();
   for(const el of $('hand').children){el.classList.toggle('selected',selected.has(el.dataset.id));el.classList.toggle('forced-card',forcedSelection.has(el.dataset.id));el.setAttribute('aria-pressed',String(selected.has(el.dataset.id)));if(forcedSelection.has(el.dataset.id))el.title='本轮必出，已自动选中';}
-  $('selectedCount').textContent='已选 '+selected.size+' 张';
   const canAct=!replaySnapshot&&state.turn===0&&['bury','playing'].includes(state.phase);
   $('play').hidden=!canAct;$('hint').hidden=!canAct;
   $('play').disabled=!canAct||selected.size===0;$('hint').disabled=!canAct;
   $('play').textContent=state.phase==='bury'?'确认埋底':'出 牌';
   const cards=state.hands[0].filter(c=>selected.has(c.id));
-  $('pairToggle').textContent=pairSelection?'对子连选 ✓':'单张选择';$('pairToggle').setAttribute('aria-pressed',String(pairSelection));
+  $('pairToggle').textContent=pairSelection?'对子连选 ✓':'对子连选 关';$('pairToggle').setAttribute('aria-pressed',String(pairSelection));
   const bigger=!replaySnapshot&&state.phase==='playing'&&state.turn===0&&state.plays.length>0&&cards.length>0&&!E.legal(state.hands[0],cards,state.plays[0].cards,state)&&E.winner([...state.plays,{player:0,cards}],state)===0;
-  $('selectionNotice').textContent=bigger?'您选取的牌大于其他玩家':'';
+  $('selectionNotice').textContent=state.phase==='bury'&&state.dealer===0?'已选 '+selected.size+' / 8 张底牌':bigger?'您选取的牌大于其他玩家':'';
 }
-function selectionNotice(){notice(state.phase==='bury'?'请选择 8 张底牌，当前已选 '+selected.size+' 张。':'已选择 '+selected.size+' 张牌。');}
+function selectionNotice(){notice('');}
 function selectionIds(id,single=false){
   const card=state.hands[0].find(c=>c.id===id);
   if(!card||single||!pairSelection||(state.phase==='playing'&&state.plays[0]?.cards.length===1))return [id];
@@ -207,7 +206,7 @@ function render(){
     if(!auctionOpen()&&state.currentBid?.player===i){const badge=document.createElement('div');badge.className='final-bid';badge.title='最终定主：'+trumpName(state.currentBid.trump);badge.replaceChildren(...state.currentBid.cards.map(c=>cardElement(c)));player.append(badge);}
     const voids=showVoidHints&&i!==0?(state.voids?.[i]||[]):[];
     if(voids.length){const badge=document.createElement('span');badge.className='void-suits';badge.setAttribute('aria-label','已确认缺门');for(const cat of voids){const mark=document.createElement('span');mark.textContent=cat==='T'?'主':E.symbol[cat];mark.className=cat==='T'||cat==='H'||cat==='D'?'void-red':'';mark.title='已确认缺'+(cat==='T'?'主牌':E.symbol[cat]+'副牌');badge.append(mark);}player.append(badge);}
-    const container=$('play'+i),play=view.plays.find(p=>p.player===i);
+    const container=$('play'+i),play=state.phase==='over'?null:view.plays.find(p=>p.player===i);
     const cards=(play?.cards||[]).map((c,index)=>{const el=cardElement(c);el.style.zIndex=String(index+1);return el;});
     container.replaceChildren(...cards);
     container.classList.toggle('is-winning',!!play&&bestPlayer===i);
@@ -364,11 +363,11 @@ function bury(cards){
 function schedule(){
   clearTimeout(timer);if(state.phase!=='playing'||replaySnapshot)return;
   if(state.turn===0&&canAutoFinish()){
-    notice('最后一轮，系统即将自动出牌…');
+    notice('');
     timer=setTimeout(()=>{if(modalOpen()){schedule();return;}playCards(0,[...state.hands[0]]);},650);return;
   }
-  if(state.turn===0){notice(state.plays.length?'轮到你：请跟 '+state.plays[0].cards.length+' 张牌。':'轮到你领出：可出单张、对子、拖拉机或同门甩牌。');return;}
-  notice(names[state.turn]+'正在思考…');
+  if(state.turn===0){notice('');return;}
+  notice('');
   timer=setTimeout(()=>{const player=state.turn;playCards(player,E.choose(state.hands[player],state.plays,state,player));},950);
 }
 function playCards(player,cards){
@@ -455,13 +454,11 @@ function finish(lastWinner){
   levels[winningTeam]=Math.min(14,levels[winningTeam]+result.steps);dealer=(state.dealer+(result.defend?2:3))%4;
   log((winningTeam===0?'我方':'对方')+(result.defend?'保庄':'上台')+(result.steps?'，升 '+result.steps+' 级':'')+'。');
   render();$('center').className='center-panel result';
-  $('center').innerHTML='<span class="eyebrow">'+(state.matchOver?'MATCH COMPLETE':'ROUND COMPLETE')+'</span><h2>'+(state.matchOver?'A 级结束 · 整场完成':(winningTeam===0?'我方':'对方')+(result.defend?'成功保庄':'成功上台'))+'</h2><div class="result-score">'+state.score+' <small style="font-size:12px">分</small></div><p>'+(state.matchOver?'再来一局，双方从 2 重新开始':(result.steps?'获胜方升 '+result.steps+' 级 · ':'')+'下局由'+names[dealer]+'坐庄')+'<br>'+(multiplier?'扣底 '+E.points(state.bottom)+' × '+multiplier+' = '+bonus+' 分':'庄家保底成功')+'</p><button id="next" class="primary">再来一局 →</button>';
-  const reveal=document.createElement('section');reveal.className='result-bottom';
-  reveal.innerHTML='<h3>本局底牌已亮出 <small>底分 '+E.points(state.bottom)+' 分</small></h3><div id="resultBottomCards" class="bottom-cards"></div>';
-  $('center').insertBefore(reveal,$('next'));
-  $('resultBottomCards').replaceChildren(...E.sort(state.bottom,state).map(c=>cardElement(c)));
+  const outcome=winningTeam===0?'获胜':'失败',detail=state.score===0?'大光':state.score<40?'小光':state.score+' 分';
+  $('center').innerHTML='<h2 class="outcome '+(winningTeam===0?'won':'lost')+'">'+outcome+' <small>'+detail+'</small></h2><p class="bottom-score">底牌 '+E.points(state.bottom)+' 分</p><div id="resultBottomCards" class="bottom-cards settlement-cards"></div><button id="next" class="primary">再来一局</button>';
+  $('resultBottomCards').replaceChildren(...E.sort(state.bottom,state).map((c,i)=>{const el=cardElement(c);el.style.setProperty('--reveal-delay',i*65+'ms');return el;}));
   $('next').onclick=()=>{if(state.matchOver)startMatch();else{round++;newGame();}};
-  notice(state.matchOver?'整场游戏结束，点击「再来一局」双方从 2 开始。':'本局底牌已自动公开，点击「再来一局」继续本场升级。');
+  notice('');
 }
 function showBottom(){
   if(state.phase!=='over'&&(state.dealer!==0||auctionOpen()||state.phase==='bury')){
@@ -480,7 +477,7 @@ $('hint').onclick=()=>{
   const cards=state.phase==='bury'?autoBottom(state.hands[0]):E.choose(state.hands[0],state.plays,state,0);
   selected=new Set(cards.map(c=>c.id));renderHand();notice(state.phase==='bury'?'已选出建议埋底的 8 张牌，可自行调整。':'已选出建议出牌，点击「出牌」确认。');
 };
-$('pairToggle').onclick=()=>{pairSelection=!pairSelection;syncHandSelection();};
+$('pairToggle').onclick=()=>{pairSelection=!pairSelection;localStorage.setItem('tractor-pair-selection',String(pairSelection));syncHandSelection();};
 $('previousBtn').onclick=showPrevious;
 $('rulesBtn').onclick=()=>$('rules').showModal();$('closeRules').onclick=$('gotRules').onclick=()=>$('rules').close();
 $('restart').onclick=()=>$('confirm').showModal();$('cancelRestart').onclick=()=>$('confirm').close();
@@ -491,7 +488,7 @@ function fitGame(){
 }
 window.visualViewport?.addEventListener('resize',fitGame);
 window.addEventListener('resize',()=>{endSelectionGesture(true);fitGame();});fitGame();setupHandSelection();
-$('logBtn').onclick=()=>$('history').showModal();$('closeHistory').onclick=()=>$('history').close();
+$('closeHistory').onclick=()=>$('history').close();
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{notice('当前浏览器不支持全屏，可使用浏览器的全屏功能。');}};
 $('bottomBtn').onclick=showBottom;$('closeBottom').onclick=()=>$('bottomDialog').close();
 $('throwHintToggle').onclick=()=>togglePublicHint('throw');

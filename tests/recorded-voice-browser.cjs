@@ -21,6 +21,11 @@ const {chromium}=require('@playwright/test'),assert=require('node:assert/strict'
   await page.locator('#voicePackToggle').click();await page.reload();await page.evaluate(()=>clearTimers());await page.locator('#settingsBtn').click();assert.equal(await page.evaluate(()=>GameAudio.recordingStatus().voicePack),'male');
   await page.locator('#speechToggle').click();await page.locator('#voicePackToggle').click();assert.equal(await page.evaluate(()=>GameAudio.recordingStatus().playing),null);await page.locator('#speechToggle').click();
   const fallback=await page.evaluate(()=>{window.SpeechSynthesisUtterance=class {constructor(text){this.text=text;}};speechSynthesis.getVoices=()=>[{lang:'zh-CN'}];let said='';speechSynthesis.speak=u=>said=u.text;GameAudio.say('甩十一张');return said;});assert.equal(fallback,'甩十一张');
+  for(const n of [80,120,160]){
+   await page.evaluate(n=>{GameAudio.reset();GameAudio.score(n);},n);
+   assert.ok((await page.evaluate(()=>GameAudio.recordingStatus().playing)).endsWith(`scores/score-${n}.wav`));
+   const duration=await page.evaluate(async n=>{const ctx=new AudioContext(),r=await fetch(`assets/voice/scores/score-${n}.wav`),a=await ctx.decodeAudioData(await r.arrayBuffer());await ctx.close();return a.duration;},n);assert.ok(duration>.7&&duration<1.3);
+  }
   assert.deepEqual(errors,[]);console.log('52 recorded clips decode; matching, playback queue, mute/reset, and missing-line fallback passed.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});

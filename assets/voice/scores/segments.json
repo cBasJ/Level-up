@@ -1,0 +1,27 @@
+{
+  "source": "破分.m4a",
+  "sha256": "6eca36d47dd3b1a0afc9bca1fb96f5d76d8dbd41d213512fd0190a2fb0670d46",
+  "clips": [
+    {
+      "score": 80,
+      "text": "破80",
+      "file": "score-80.wav",
+      "start": 73.18,
+      "end": 74.13
+    },
+    {
+      "score": 120,
+      "text": "破120",
+      "file": "score-120.wav",
+      "start": 74.16,
+      "end": 75.04
+    },
+    {
+      "score": 160,
+      "text": "破160",
+      "file": "score-160.wav",
+      "start": 75.12,
+      "end": 76.16
+    }
+  ]
+}

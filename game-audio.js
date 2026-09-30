@@ -51,7 +51,8 @@
  }
  function say(text){
   if(!speech||document.hidden)return;
-  const file=recordings[recordingKey(text)];
+  const scoreFiles={'破80':'assets/voice/scores/score-80.wav','破120':'assets/voice/scores/score-120.wav','破160':'assets/voice/scores/score-160.wav'};
+  const file=scoreFiles[recordingKey(text)]||recordings[recordingKey(text)];
   if(file){window.speechSynthesis?.cancel();if(recordingQueue.length>=3)recordingQueue.shift();recordingQueue.push({text,file});playNextRecording();return;}
   resetSpeech();sayTTS(text);
  }
@@ -92,5 +93,5 @@
  window.speechSynthesis?.addEventListener('voiceschanged',update);
  document.addEventListener('visibilitychange',()=>{if(document.hidden)resetSpeech();});
  window.addEventListener('pagehide',resetSpeech);
- window.GameAudio={select,play,say,announcement,bidAnnouncement,bid:(bid,previous)=>say(bidAnnouncement(bid,previous)),effectsEnabled:()=>effects,reset:resetSpeech,recordingStatus:()=>({voicePack,available:Object.keys(recordings).length,playing:recording?.src||null,queued:recordingQueue.length})};update();updatePackButton();
+ window.GameAudio={select,play,say,score:n=>say(`破${n}`),announcement,bidAnnouncement,bid:(bid,previous)=>say(bidAnnouncement(bid,previous)),effectsEnabled:()=>effects,reset:resetSpeech,recordingStatus:()=>({voicePack,available:Object.keys(recordings).length,playing:recording?.src||null,queued:recordingQueue.length})};update();updatePackButton();
 })();

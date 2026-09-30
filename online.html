@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>欢乐拖拉机 · 好友房</title><link rel="stylesheet" href="game.css"><link rel="stylesheet" href="online.css"><link rel="stylesheet" href="card-art.css"><link rel="stylesheet" href="viewport.css"></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>畅玩升级 · 好友房</title><link rel="stylesheet" href="game.css"><link rel="stylesheet" href="online.css"><link rel="stylesheet" href="card-art.css"><link rel="stylesheet" href="viewport.css"></head>
 <body><main id="onlineApp">
-<header><a href="lobby.html">← 游戏大厅</a><b>欢乐拖拉机 · 好友房</b><span id="connection">尚未连接</span><a href="profile.html">个人资料</a><button id="settingsBtn">⚙ 设置</button></header>
+<header><a href="lobby.html" class="home-icon" aria-label="返回游戏大厅" title="返回游戏大厅">⌂</a><b>畅玩升级 · 好友房</b><span id="connection">尚未连接</span><button id="settingsBtn">⚙ 设置</button></header>
 <section id="lobby"><span class="eyebrow">与好友，同桌升级</span><h1>四人同桌 · 对家同心</h1><p>创建房间，将六位房间号分享给好友。四人准备后开局。</p>
 <form id="login"><label>你的昵称 <input id="nickname" maxlength="16" value="牌友" required></label><button class="primary">进入大厅</button></form>
 <div id="roomActions" hidden><button id="create" class="primary">创建好友房</button><form id="join"><input id="roomCode" pattern="[0-9]{6}" maxlength="6" placeholder="六位房间号" aria-label="六位房间号" required><button class="secondary">加入房间</button></form></div></section>
@@ -18,5 +18,5 @@
 <div id="hand" aria-label="我的手牌"></div><div id="bottomReveal"></div>
 </section><p id="toast" role="status" aria-live="polite"></p>
 </main>
-<dialog id="settings"><button id="closeSettings" class="close">×</button><h2>游戏设置</h2><p>联网牌局采用正常随机发牌，服务器统一裁定。</p><button id="throwHintToggle">甩牌提示 ✓</button><button id="voidHintToggle">缺门提示 ✓</button><button id="musicToggle">背景音乐 ✓</button><label>音乐音量 <output id="musicVolumeLabel">22%</output><input id="musicVolume" type="range" min="0" max="100" value="22"></label><button id="effectsToggle">游戏音效 ✓</button><button id="speechToggle">语音报牌 ✓</button><button id="voicePackToggle">音源：女声</button><p id="speechStatus"></p></dialog>
+<dialog id="settings"><button id="closeSettings" class="close">×</button><h2>游戏设置</h2><p>联网牌局采用正常随机发牌，服务器统一裁定。</p><button id="pairToggle" aria-pressed="true">对子连选 ✓</button><button id="throwHintToggle">甩牌提示 ✓</button><button id="voidHintToggle">缺门提示 ✓</button><button id="musicToggle">背景音乐 ✓</button><label>音乐音量 <output id="musicVolumeLabel">22%</output><input id="musicVolume" type="range" min="0" max="100" value="22"></label><button id="effectsToggle">游戏音效 ✓</button><button id="speechToggle">语音报牌 ✓</button><button id="voicePackToggle">音源：女声</button><p id="speechStatus"></p></dialog>
 <script src="engine.js"></script><script src="table-layout.js"></script><script src="card-art.js"></script><script src="assets/voice/voice-clips.js"></script><script src="assets/voice/male/voice-clips.js"></script><script src="music.js"></script><script src="game-audio.js"></script><script src="online.js"></script><script src="viewport.js"></script></body></html>

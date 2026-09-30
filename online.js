@@ -4,6 +4,8 @@ const $=id=>document.getElementById(id),E=Tractor;
 let identity;try{identity=JSON.parse(localStorage.getItem('tractor-online-user')||'null');}catch{}
 let ws,room,selected=new Set(),forced=new Set(),replay=false,replayTimer,toastTimer,showBottom=false,offset=0,authenticated=false,stopped=false;
 let hints={throw:true,void:true};try{hints={...hints,...JSON.parse(localStorage.getItem('tractor-online-hints')||'{}')};}catch{}
+let pairSelection=localStorage.getItem('tractor-pair-selection')!=='false';
+$('pairToggle').onclick=()=>{pairSelection=!pairSelection;localStorage.setItem('tractor-pair-selection',String(pairSelection));syncPair();};function syncPair(){$('pairToggle').textContent=pairSelection?'对子连选 ✓':'对子连选 关';$('pairToggle').setAttribute('aria-pressed',String(pairSelection));}syncPair();
 const pending=new Map();
 // Keep auction controls alive across 100 ms deal snapshots, including pointerdown → click.
 const bidButtons=[...E.SUITS,'SJ','BJ'].map(s=>{
@@ -28,7 +30,7 @@ function connect(){
       if(old&&next&&m.room.revision>room.revision){
         if(next.currentBid&&JSON.stringify(next.currentBid)!==JSON.stringify(old.currentBid))GameAudio?.bid(next.currentBid,old.currentBid);
         if(next.plays.length>old.plays.length){const p=next.plays.at(-1);GameAudio?.play(p.cards,next.plays.slice(0,-1),next,p.player);}
-        for(const n of [80,120,180])if(old.score<n&&next.score>=n){GameAudio?.say(`抓分达到${n}分`);if(n===80){$('summary').classList.add('score-celebrate');setTimeout(()=>$('summary').classList.remove('score-celebrate'),2200);}}
+        for(const n of [80,120,160])if(old.score<n&&next.score>=n){GameAudio?.score(n);if(n===80){$('summary').classList.add('score-celebrate');setTimeout(()=>$('summary').classList.remove('score-celebrate'),2200);}}
       }
       if(!room||room.round!==m.room.round||old?.phase==='over'&&next?.phase==='dealing'){selected.clear();replay=false;showBottom=false;}
       room=m.room;render();
@@ -67,14 +69,14 @@ function render(){
   $('currentLevel').textContent=g?E.label(g.level):'—';$('currentTrump').textContent=g?.trump?(E.symbol[g.trump]||'无主'):'待定';
   $('roundNumber').textContent=g?`第 ${room.round} 局 · ${['dealing','bidding','bury'].includes(g.phase)?'未开打':'第 '+g.trick+' 轮'}`:'等待开局';
   $('tableScore').textContent=g?E.points((replay?g.lastTrick:g.plays).flatMap(p=>p.cards)):0;
-  $('ready').hidden=!!g&&g.phase!=='over';$('ready').disabled=room.members[seat].ready;$('ready').textContent=room.members[seat].ready?'等待其他玩家准备':g?'准备下一局':'准备';
+  $('ready').hidden=!!g&&g.phase!=='over';$('ready').disabled=room.members[seat].ready;$('ready').textContent=room.members[seat].ready?'等待其他玩家准备':g?'再来一局':'准备';
   const myTurn=g&&g.turn===seat&&!replay;
   $('play').hidden=!myTurn||!['bury','playing'].includes(g.phase);$('play').disabled=!authenticated;$('play').textContent=g?.phase==='bury'?'埋下 8 张':'出牌';$('hint').hidden=!myTurn||g.phase!=='playing';$('previous').disabled=!g?.lastTrick?.length;$('previous').textContent=replay?'返回':'上轮';$('bottom').disabled=!g?.bottom.length;
-  $('message').textContent=replay?'上轮回看':!g?(room.members.length<4?'邀请好友入座':'请点击准备'):g.phase==='playing'?(g.turn===seat?'轮到你出牌':`等待 ${room.members[g.turn].name} 出牌`):g.phase==='bury'?(g.turn===seat?'请选择 8 张底牌':'等待庄家埋底'):g.phase==='dealing'?'发牌中 · 可抢主':g.phase==='bidding'?'可反主 / 自保':g.message;
+  $('message').textContent=replay?'上轮回看':!g?(room.members.length<4?'邀请好友入座':'请点击准备'):g.phase==='playing'?'':g.phase==='bury'?(g.turn===seat?'请选择 8 张底牌':'等待庄家埋底'):g.phase==='dealing'?'发牌中 · 可抢主':g.phase==='bidding'?'可反主 / 自保':g.message;
   updateCountdown();
   $('bids').hidden=!g||!['dealing','bidding'].includes(g.phase);$('bidCards').hidden=$('bids').hidden;
   if(g&&['dealing','bidding'].includes(g.phase)){
-    $('bidCards').textContent=g.currentBid?g.currentBid.cards.map(c=>E.label(c.r)+E.symbol[c.s]).join(' '):'等待亮主';
+    $('bidCards').replaceChildren(...(g.currentBid?g.currentBid.cards.map(c=>card(c,g)):[document.createTextNode('等待亮主')]));
     const passed=!!g.passed?.[seat],options=passed?[]:E.bidOptions(g.hand,g.level,g.currentBid,seat);
     passBid.hidden=!!g.declared?.[seat]||g.currentBid?.player===seat;passBid.disabled=passed;passBid.textContent=passed?'已不叫':'不叫';
     for(const button of bidButtons){
@@ -83,14 +85,27 @@ function render(){
       button.disabled=!choice;button.dataset.choice=choice?.choice||'';button.title=choice?(g.currentBid?.player===seat?'自保':g.currentBid?'反主':'亮主'):'尚无可亮的级牌，或不能超过当前亮主';
     }
   }
-  $('plays').replaceChildren();if(g){const plays=replay?g.lastTrick:g.plays,winner=plays.length?E.winner(plays,g):null;for(const p of plays){const node=document.createElement('div');node.className='play-'+rel(p.player)+(p.player===winner?' winner':'');node.append(...p.cards.map(c=>card(c,g)));$('plays').append(node);}}
+  $('plays').replaceChildren();if(g&&g.phase!=='over'){const plays=replay?g.lastTrick:g.plays,winner=plays.length?E.winner(plays,g):null;for(const p of plays){const node=document.createElement('div');node.className='play-'+rel(p.player)+(p.player===winner?' winner':'');node.append(...p.cards.map(c=>card(c,g)));$('plays').append(node);}}
   $('hand').replaceChildren();$('selectionNotice').textContent='';if(g){
     const handIds=new Set(g.hand.map(c=>c.id));selected=new Set([...selected].filter(id=>handIds.has(id)));forced=new Set(E.forcedCards(g.hand,lead(),g).map(c=>c.id));for(const id of forced)selected.add(id);
     const safe=hints.throw?E.publicThrowIds(g.hand,g.publicCards,g):new Set(),tractors=E.tractorIds(g.hand,g),follow=lead(),cat=follow?E.category(follow[0],g):null,same=g.hand.filter(c=>E.category(c,g)===cat).length;
     g.hand.forEach(c=>{const node=card(c,g);node.dataset.id=c.id;node.classList.toggle('selected',selected.has(c.id));node.classList.toggle('dim',!!follow&&same>=follow.length&&E.category(c,g)!==cat);const mark=document.createElement('span');mark.className='mark';mark.textContent=forced.has(c.id)?'必':safe.has(c.id)?'甩':tractors.has(c.id)?'连对':'';node.append(mark);if(g.phase==='bury'&&g.bottom.some(b=>b.id===c.id)){const tag=document.createElement('span');tag.className='new';tag.textContent='底';node.append(tag);} $('hand').append(node);});
+    if(g.phase==='bury'&&g.dealer===seat)$('selectionNotice').textContent='已选 '+selected.size+' / 8 张底牌';
     const chosen=g.hand.filter(c=>selected.has(c.id));if(myTurn&&g.phase==='playing'&&g.plays.length&&chosen.length&&!E.legal(g.hand,chosen,follow,g)&&E.winner([...g.plays,{player:seat,cards:chosen}],g)===seat)$('selectionNotice').textContent='您选取的牌大于其他玩家';
   }
-  $('bottomReveal').replaceChildren();if(g&&(g.phase==='over'||showBottom)&&g.bottom.length){const label=document.createElement('div');label.textContent='底牌 · '+E.points(g.bottom)+' 分';$('bottomReveal').append(label,...g.bottom.map(c=>card(c,g)));}
+  if(g?.phase==='over'){
+    const key=room.code+':'+room.round;
+    if($('bottomReveal').dataset.resultKey!==key){
+      const won=(g.score<80?g.dealer%2:1-g.dealer%2)===seat%2;
+      const title=document.createElement('h2');title.className='outcome '+(won?'won':'lost');title.textContent=won?'获胜':'失败';const detail=document.createElement('small');detail.textContent=g.score===0?'大光':g.score<40?'小光':g.score+' 分';title.append(detail);
+      const cards=document.createElement('div');cards.className='settlement-cards';cards.append(...g.bottom.map((c,i)=>{const el=card(c,g);el.style.setProperty('--reveal-delay',i*65+'ms');return el;}));
+      const score=document.createElement('p');score.className='bottom-score';score.textContent='底牌 '+E.points(g.bottom)+' 分';$('bottomReveal').replaceChildren(title,score,cards);$('bottomReveal').dataset.resultKey=key;
+    }
+    $('bottomReveal').append($('ready'));
+  }else{
+    $('actions').prepend($('ready'));delete $('bottomReveal').dataset.resultKey;$('bottomReveal').replaceChildren();
+    if(g&&showBottom&&g.bottom.length){const label=document.createElement('div');label.textContent='底牌 · '+E.points(g.bottom)+' 分';$('bottomReveal').append(label,...g.bottom.map(c=>card(c,g)));}
+  }
   layout();
 }
 function layout(){
@@ -101,7 +116,7 @@ function layout(){
 let drag=null;
 $('hand').onpointerdown=e=>{const node=e.target.closest('[data-id]');if(!node||!room.game)return;e.preventDefault();$('hand').setPointerCapture(e.pointerId);drag={start:room.game.hand.findIndex(c=>c.id===node.dataset.id),anchor:node.dataset.id,add:!selected.has(node.dataset.id),base:new Set(selected),shift:e.shiftKey};selectRange(drag.start);};
 function selectRange(end){const g=room.game,lo=Math.min(drag.start,end),hi=Math.max(drag.start,end);selected=new Set(drag.base);let chosen=g.hand.slice(lo,hi+1);const n=lead()?.length,limit=n===1?1:n===2?2:Infinity;
-  if(lo===hi&&limit!==1&&!drag.shift){const pair=g.hand.filter(c=>E.key(c)===E.key(chosen[0]));if(pair.length===2)chosen=pair;}
+  if(lo===hi&&limit!==1&&pairSelection&&!drag.shift){const pair=g.hand.filter(c=>E.key(c)===E.key(chosen[0]));if(pair.length===2)chosen=pair;}
   if(drag.add&&selected.size+chosen.filter(c=>!selected.has(c.id)).length>limit)selected=new Set(forced);
   for(const c of chosen.slice(0,limit))if(drag.add)selected.add(c.id);else if(!forced.has(c.id))selected.delete(c.id);
   GameAudio?.select();render();
