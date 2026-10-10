@@ -728,7 +728,9 @@ var ChangwanGame = (() => {
           this.change(next, old);
         }
         update() {
-          if (!this.active || this.online || !this.local) return;
+          if (!this.active) return;
+          this.updateAuto();
+          if (this.online || !this.local) return;
           const g = this.local.game, now = Date.now();
           if (["dealing", "bidding"].includes(g.phase) && now > this.botAt) {
             this.botAt = now + 1800;
@@ -748,7 +750,32 @@ var ChangwanGame = (() => {
             g.deadline += 60;
             return;
           }
+          if (g.phase === "playing" && g.turn === 0) return;
           if (authority.tick(this.local, now)) this.publish();
+        }
+        updateAuto() {
+          const r = this.room, g = r?.game, lastCard = g?.phase === "playing" && g.turn === r.seat && g.hand.length === 1 && !E.legal(g.hand, g.hand, g.plays[0]?.cards, g);
+          if (!this.auto && !lastCard || !g || !["bidding", "bury", "playing"].includes(g.phase)) return;
+          const mine = g.phase === "bidding" ? !g.passed?.[r.seat] : g.turn === r.seat;
+          if (!mine) {
+            this.autoKey = null;
+            return;
+          }
+          const key = [g.id, g.phase, g.trick, g.turn, g.hand.map((c) => c.id).join(","), g.plays.map((p) => p.player + ":" + p.cards.map((c) => c.id).join(",")).join("|")].join(":");
+          if (this.autoKey !== key) {
+            this.autoKey = key;
+            this.autoAt = Date.now() + 350;
+            this.autoSent = false;
+            return;
+          }
+          if (this.autoSent || Date.now() < this.autoAt || this.replayUntil && Date.now() < this.replayUntil) return;
+          if (this.online && !this.authenticated) return;
+          this.autoSent = true;
+          if (g.phase === "bidding") this.command("pass");
+          else {
+            const cards = g.phase === "bury" ? [...g.hand].sort((a, b) => E.points([a]) - E.points([b]) || E.rank(a, g) - E.rank(b, g)).slice(0, 8) : E.choose(g.hand, g.plays, g, r.seat);
+            this.command(g.phase === "bury" ? "bury" : "play", { cards: cards.map((c) => c.id) });
+          }
         }
         command(type, data = {}) {
           if (!this.online) {
@@ -841,6 +868,8 @@ var ChangwanGame = (() => {
           });
         }
         disconnect() {
+          this.auto = false;
+          this.autoKey = null;
           this.stopped = true;
           clearTimeout(this.retry);
           this.socket?.close();
@@ -1093,9 +1122,9 @@ var ChangwanGame = (() => {
           c.arcTo(x, y, x + w, y, radius);
           c.fill();
         }
-        button(text, x, y, w, h, fn, gold = false, disabled = false) {
+        button(text, x, y, w, h, fn, gold = false, disabled = false, fontSize = 22) {
           this.rect(x, y, w, h, disabled ? "#526b57" : gold ? "#e8c977" : "#285d43");
-          this.text(text, x + w / 2, y + h / 2, 22, disabled ? "#b8c5b1" : gold ? "#345033" : "#f8ebbd", "center");
+          this.text(text, x + w / 2, y + h / 2, fontSize, disabled ? "#b8c5b1" : gold ? "#345033" : "#f8ebbd", "center");
           if (!disabled) this.hits.push({ x, y, w, h, fn });
         }
         avatar(index, x, y, size = 76) {
@@ -1104,7 +1133,7 @@ var ChangwanGame = (() => {
           if (im.ready) this.ctx.drawImage(im, index % 2 * im.width / 2, Math.floor(index / 2) * im.height / 2, im.width / 2, im.height / 2, x, y, size, size);
         }
         card(card, x, y, width = 88, options = {}) {
-          const c = this.ctx, height = width * 1.5;
+          const c = this.ctx, height = width * 1.34;
           c.save();
           if (options.reveal != null) {
             const p = Math.min(1, Math.max(0, options.reveal));
@@ -1113,27 +1142,64 @@ var ChangwanGame = (() => {
             y += (1 - p) * 20;
             width *= Math.max(0.03, p);
           }
-          this.rect(x, y, width, height, "#fffdf7", Math.min(6, width / 2));
+          this.rect(x, y, width, height, "#fffdf7", Math.min(10, width / 2));
           c.save();
           c.clip();
           const im = this.image("assets/cards/" + card.s + card.r + ".jpg");
-          if (im.ready) c.drawImage(im, x, y, width, height);
-          else {
-            this.text(E.label(card.r), x + 5, y + 23, 27, ["H", "D"].includes(card.s) ? "#b93432" : "#21372a");
-            this.text(E.symbol[card.s], x + 5, y + 49, 25, ["H", "D"].includes(card.s) ? "#b93432" : "#21372a");
+          if (im.ready) {
+            if (card.s === "J") {
+              const faceWidth = height / 1.5;
+              c.drawImage(im, x + (width - faceWidth) / 2, y, faceWidth, height);
+              this.rect(x + width * 0.025, y + width * 0.025, width * 0.27, width * 0.58, "#fffdf7", 2);
+              const title = this.image("assets/cards/joker-title-" + (card.r === 16 ? "big" : "small") + ".jpg");
+              if (title.ready) c.drawImage(title, x + width * 0.025, y + width * 0.075, width * 0.27, width * 0.513);
+              else {
+                c.font = "600 " + width * 0.2 + "px STXingkai, KaiTi, serif";
+                c.fillStyle = card.r === 16 ? "#bd2d22" : "#252521";
+                c.textAlign = "center";
+                c.textBaseline = "middle";
+                c.fillText(card.r === 16 ? "\u5927" : "\u5C0F", x + width * 0.16, y + width * 0.19);
+                c.fillText("\u738B", x + width * 0.16, y + width * 0.46);
+              }
+            } else c.drawImage(im, x, y, width, width * 1.5);
+          } else {
+            this.text(E.label(card.r), x + width * 0.027, y + width * 0.27, width * 0.44, ["H", "D"].includes(card.s) ? "#c52f32" : "#171b19");
+            if (card.r === 10) {
+              this.rect(x + width * 0.027, y + width * 0.04, width * 0.46, width * 0.42, "#fffdf7", 0);
+              c.font = width * 0.44 + "px Arial";
+              c.fillStyle = ["H", "D"].includes(card.s) ? "#c52f32" : "#171b19";
+              c.fillText("10", x + width * 0.027, y + width * 0.27, width * 0.287);
+            }
+            this.text(E.symbol[card.s], x + width * 0.045, y + width * 0.627, width * 0.293, ["H", "D"].includes(card.s) ? "#c52f32" : "#171b19");
           }
           c.restore();
+          if (options.bottom) this.rect(x, y, width, height, "rgba(239,183,48,.28)", Math.min(10, width / 2));
           if (options.dim) {
-            this.rect(x, y, width, height, "rgba(95,95,95,.7)", Math.min(6, width / 2));
+            this.rect(x, y, width, height, "rgba(95,95,95,.7)", Math.min(10, width / 2));
           }
+          const radius = Math.min(10, width / 2);
+          c.beginPath();
+          c.moveTo(x + radius, y);
+          c.arcTo(x + width, y, x + width, y + height, radius);
+          c.arcTo(x + width, y + height, x, y + height, radius);
+          c.arcTo(x, y + height, x, y, radius);
+          c.arcTo(x, y, x + width, y, radius);
+          c.closePath();
           c.strokeStyle = options.winner ? "#eec85b" : "#a6b49e";
           c.lineWidth = options.winner ? 3 : 1;
           c.stroke();
-          if (options.stars) this.text("\u2605".repeat(options.stars), x + 4, y + height - 13, 14, "#d9a326");
-          if (options.mark) this.text(options.mark, x + 4, y + height - 32, 14, options.mark === "\u7529" ? "#287ed0" : "#3a8461");
+          if (options.stars) {
+            c.save();
+            c.shadowColor = "#975e09";
+            c.shadowBlur = 3;
+            const size = Math.min(30, width * 0.21);
+            for (let i = 0; i < options.stars; i++) this.text("\u2605", x + 4, y + height - 20 - i * (size + 2), size, "#ffc83f");
+            c.restore();
+          }
+          if (options.mark) this.text(options.mark, x + 4, y + height - (options.mark === "\u7529" ? 18 : 108), options.mark === "\u7529" ? 26 : 18, options.mark === "\u7529" ? "#287ed0" : "#3a8461");
           if (options.bottom) {
-            this.rect(x + 2, y + height - 57, 24, 22, "#f4ce68", 4);
-            this.text("\u5E95", x + 14, y + height - 46, 17, "#69431b", "center");
+            this.rect(x + 2, y + height - 75, 24, 22, "#f4ce68", 4);
+            this.text("\u5E95", x + 14, y + height - 64, 17, "#69431b", "center");
           }
           if (options.selected) {
             c.strokeStyle = "#ffda71";
@@ -1144,13 +1210,13 @@ var ChangwanGame = (() => {
         }
         cardsRow(cards, cx, y, maxWidth = 460, options = {}) {
           if (!cards.length) return;
-          const width = options.width || 104, step = options.spread ? width + 12 : Math.min(34, (maxWidth - width) / Math.max(1, cards.length - 1)), start = cx - (width + step * (cards.length - 1)) / 2;
+          const width = options.width || 104, step = options.spread ? width + 12 : Math.min(options.step || 34, (maxWidth - width) / Math.max(1, cards.length - 1)), start = cx - (width + step * (cards.length - 1)) / 2;
           cards.forEach((card, i) => this.card(card, start + i * step, y, width, { ...options, stars: options.stars ?? (this.room?.game ? E.stars(card, this.room.game) : 0), reveal: options.revealAt == null ? void 0 : (Date.now() - options.revealAt - i * 65) / 420 }));
           if (options.winner) {
             const label = options.winnerLabel || "\u5F53\u524D\u6700\u5927", right = start + width + step * (cards.length - 1);
             this.ctx.font = "20px sans-serif";
             if (options.winnerBelow) {
-              const letters = [...label], badgeHeight = letters.length * 23 + 10, badgeY = y + width * 1.5 - badgeHeight;
+              const letters = [...label], badgeHeight = letters.length * 23 + 10, badgeY = y + width * 1.34 - badgeHeight;
               this.rect(right - 2, badgeY, 32, badgeHeight, "#eec85b", 6);
               letters.forEach((letter, i) => this.text(letter, right + 14, badgeY + 17 + i * 23, 20, "#fff", "center"));
             } else {
@@ -1162,9 +1228,9 @@ var ChangwanGame = (() => {
         }
         header(title, back) {
           const left = -this.insetX / this.scale, top = -this.insetY / this.scale, right = this.w + this.insetX / this.scale;
-          this.button("", left + 12, top + 8, 68, 60, back);
-          this.text("\u2039", left + 46, top + 35, 49, "#fff0bb", "center");
-          this.text(title, left + 94, top + 36, 23, "#fff0bb");
+          this.button("", 12 - this.insetX / (2 * this.scale), top + 8, 68, 60, back);
+          this.text("\u2039", 46 - this.insetX / (2 * this.scale), top + 35, 49, "#fff0bb", "center");
+          this.text(title, 94 - this.insetX / (2 * this.scale), top + 36, 23, "#fff0bb");
           let y = top + 12;
           try {
             const capsule = wx.getMenuButtonBoundingClientRect?.();
@@ -1175,6 +1241,15 @@ var ChangwanGame = (() => {
           }
           this.button("", right - 78, y, 56, 50, () => this.popup = "settings");
           this.text("\u2699", right - 50, y + 25, 34, "#fff0bb", "center");
+          if (this.screen === "table" && this.room?.game) {
+            this.button("", right - 142, y, 56, 50, () => {
+              this.session.auto = true;
+              this.session.autoKey = null;
+              this.selected.clear();
+            }, this.session.auto);
+            this.text("\u265F", right - 114, y + 25, 32, this.session.auto ? "#fff" : "#fff0bb", "center");
+            this.text(this.session.auto ? "\u6258\u7BA1\u4E2D" : "\u6258\u7BA1", right - 114, y + 61, 15, "#fff0bb", "center");
+          }
         }
         receive(room, old) {
           this.room = room;
@@ -1315,8 +1390,9 @@ var ChangwanGame = (() => {
           const r = this.room, g = r.game, seat = r.seat;
           this.header("\u7545\u73A9\u5347\u7EA7 \xB7 " + (this.session.online ? "\u597D\u53CB\u623F " + r.code : "\u5355\u673A\u7EC3\u4E60"), () => this.home());
           this.ctx.save();
-          this.ctx.translate(-12 - this.insetX / (2 * this.scale), 0);
-          this.rect(24, 82, 280, 108, "rgba(18,63,49,.4)");
+          this.ctx.translate(-18 - this.insetX / (2 * this.scale), -20.5);
+          this.ctx.scale(1.25, 1.25);
+          this.rect(24, 82, 280, 80, "rgba(18,63,49,.4)");
           this.text("\u6211\u65B9 " + E.label(r.levels[seat % 2]), 38, 106, 24);
           this.text("\u5BF9\u65B9 " + E.label(r.levels[1 - seat % 2]), 38, 141, 24);
           this.text("\u95F2\u5BB6\u6293\u5206", 246, 101, 17, "#e8edc9", "center");
@@ -1326,8 +1402,6 @@ var ChangwanGame = (() => {
             const dealer = r.round === 1 && g.currentBid && ["dealing", "bidding"].includes(g.phase) ? g.currentBid.player : g.dealer, ty = dealer % 2 === seat % 2 ? 106 : 141;
             this.text(trump === "NT" ? "\u65E0\u4E3B" : E.symbol[trump], 166, ty, trump === "NT" ? 19 : 30, ["H", "D"].includes(trump) ? "#f36b65" : "#ffe195", "center");
           }
-          this.text("\u7B2C " + r.round + " \u5C40  " + (g ? "\u7B2C " + g.trick + " \u8F6E" : ""), 38, 174, 17);
-          this.text("\u684C\u9762 " + (g && g.phase !== "over" ? E.points(g.plays.flatMap((p) => p.cards)) : 0), 285, 174, 17, "#ffe195", "right");
           if (Date.now() - (this.scoreAt || 0) < 2200) {
             this.ctx.save();
             this.ctx.globalAlpha = Math.min(1, (2200 - Date.now() + this.scoreAt) / 500);
@@ -1335,7 +1409,7 @@ var ChangwanGame = (() => {
             this.ctx.restore();
           }
           this.ctx.restore();
-          const pos = [[8, this.h - 170], [12, this.h * 0.29], [this.w / 2 - 61, 3 - this.insetY / this.scale], [this.w - 134, this.h * 0.29]];
+          const pos = [[15 - this.insetX / (2 * this.scale), this.h - 170], [12, this.h * 0.29], [this.w / 2 + 350, 16], [this.w - 134, this.h * 0.29]];
           r.members.forEach((m, p) => {
             const rel = (p - seat + 4) % 4, [x, y] = pos[rel];
             this.avatar(m.avatar || 0, x, y, 122);
@@ -1346,8 +1420,8 @@ var ChangwanGame = (() => {
               this.cardsRow(g.currentBid.cards, bx, by, bidding ? 160 : 110, { width: bidding ? 104 : 32, stars: bidding ? void 0 : 0 });
             }
             if (g && p !== seat && this.settings.void && g.voids[p].length) {
-              this.rect(rel === 3 ? x - 36 : x + 126, y - 2, 32, g.voids[p].length * 25 + 5, "rgba(255,248,220,.2)", 6);
-              g.voids[p].forEach((s, i) => this.text(s === "T" ? "\u4E3B" : E.symbol[s], rel === 3 ? x - 8 : x + 130, y + 13 + i * 25, 22, s === "S" || s === "C" ? "#101613" : "#e52d35", rel === 3 ? "right" : "left"));
+              this.rect(rel === 3 || rel === 2 ? x - 36 : x + 126, y - 2, 32, g.voids[p].length * 25 + 5, "rgba(255,248,220,.2)", 6);
+              g.voids[p].forEach((s, i) => this.text(s === "T" ? "\u4E3B" : E.symbol[s], rel === 3 || rel === 2 ? x - 8 : x + 130, y + 13 + i * 25, 22, s === "S" || s === "C" ? "#101613" : "#e52d35", rel === 3 || rel === 2 ? "right" : "left"));
             }
           });
           if (!g) {
@@ -1366,30 +1440,35 @@ var ChangwanGame = (() => {
             return;
           }
           const replay = Date.now() < (this.replayUntil || 0), plays = replay ? g.lastTrick : g.plays, winner = plays.length ? E.winner(plays, g) : null;
+          if (["playing", "review", "throwing"].includes(g.phase)) this.text("\u684C\u9762 " + E.points(plays.flatMap((p) => p.cards)) + " \u5206", this.w / 2, this.h - 260 - 116 * 1.34 - 38, 32, "#ffe29a", "center");
           for (const p of plays) {
-            const rel = (p.player - seat + 4) % 4, width = rel % 2 ? 320 : 460, cx = rel === 1 ? 320 : rel === 3 ? this.w - 320 : this.w / 2, y = rel === 2 ? 210 : rel === 0 ? this.h - 450 : this.h * 0.33;
-            this.cardsRow(p.cards, cx, y, width, { winner: p.player === winner, winnerBelow: rel === 0, winnerLabel: replay ? "\u4E0A\u8F6E\u6700\u5927" : "\u5F53\u524D\u6700\u5927" });
+            const rel = (p.player - seat + 4) % 4, width = rel % 2 ? 420 : 640, cx = rel === 1 ? 350 : rel === 3 ? this.w - 350 : this.w / 2, y = rel === 2 ? 64 : rel === 0 ? this.h - 260 - 116 * 1.34 : Math.min(this.h * 0.33, this.h - 260 - 2 * 116 * 1.34 - 24);
+            this.cardsRow(p.cards, cx, y, width, { width: 116, step: 46, winner: p.player === winner, winnerBelow: rel === 0, winnerLabel: replay ? "\u4E0A\u8F6E\u6700\u5927" : "\u5F53\u524D\u6700\u5927" });
           }
           const auction = ["dealing", "bidding"].includes(g.phase);
           if (auction) {
             if (g.currentBid) {
-              this.text(r.members[g.currentBid.player].name + " \xB7 " + (g.currentBid.trump === "NT" ? "\u65E0\u4E3B" : E.symbol[g.currentBid.trump] + "\u4E3B"), this.w / 2, this.h - 322, 22, "#ffe39e", "center");
-            } else this.text("\u53D1\u724C\u4E2D \xB7 \u7EA7\u724C\u5230\u624B\u5373\u53EF\u4EAE\u4E3B", this.w / 2, this.h - 340, 25, "#ffe39e", "center");
+              this.text(r.members[g.currentBid.player].name + " \xB7 " + (g.currentBid.trump === "NT" ? "\u65E0\u4E3B" : E.symbol[g.currentBid.trump] + "\u4E3B"), this.w / 2, this.h - 350, 22, "#ffe39e", "center");
+            } else this.text("\u53D1\u724C\u4E2D \xB7 \u7EA7\u724C\u5230\u624B\u5373\u53EF\u4EAE\u4E3B", this.w / 2, this.h - 350, 25, "#ffe39e", "center");
             const options = g.passed?.[seat] ? [] : E.bidOptions(g.hand, g.level, g.currentBid, seat), groups = [...E.SUITS, "SJ", "BJ"], showPass = !g.declared?.[seat] && g.currentBid?.player !== seat, total = showPass ? 7 : 6;
             groups.forEach((s, i) => {
               const choice = options.find((o) => o.choice === (s.length === 1 ? s + "1" : s)) || options.find((o) => o.choice === s + "2"), count = g.hand.filter((c) => s.length === 1 ? c.s === s && c.r !== g.level : c.s === "J" && c.r === (s === "SJ" ? 15 : 16)).length;
-              this.button((E.symbol[s] || (s === "SJ" ? "\u5C0F\u738B" : "\u5927\u738B")) + " " + count, this.w / 2 - (total * 90 - 10) / 2 + i * 90, this.h - 295, 80, 54, () => this.session.command("bid", { choice: choice.choice }), true, !choice);
+              const bx = this.w / 2 - (total * 112 - 12) / 2 + i * 112, by = this.h - 320;
+              this.button("", bx, by, 100, 66, () => this.session.command("bid", { choice: choice.choice }), true, !choice, 27);
+              const ink = choice ? "#69431b" : "#c0c6b7";
+              this.text(E.symbol[s] || (s === "SJ" ? "\u5C0F\u738B" : "\u5927\u738B"), bx + (s.length === 1 ? 30 : 35), by + 33, s.length === 1 ? 54 : 27, ink, "center");
+              this.text(count, bx + 80, by + 33, 36, ink, "center");
             });
-            if (showPass) this.button(g.passed?.[seat] ? "\u5DF2\u4E0D\u53EB" : "\u4E0D\u53EB", this.w / 2 - (total * 90 - 10) / 2 + 540, this.h - 295, 80, 54, () => this.session.command("pass"), false, g.passed?.[seat]);
+            if (showPass) this.button(g.passed?.[seat] ? "\u5DF2\u4E0D\u53EB" : "\u4E0D\u53EB", this.w / 2 - (total * 112 - 12) / 2 + 672, this.h - 320, 100, 66, () => this.session.command("pass"), false, g.passed?.[seat], 27);
           }
           const myTurn = g.turn === seat && !replay && ["playing", "bury"].includes(g.phase);
-          if (myTurn) {
-            this.button("\u63D0\u793A", this.w / 2 - 130, this.h - 290, 100, 48, () => this.hint());
-            this.button(g.phase === "bury" ? "\u57CB\u5E95" : "\u51FA\u724C", this.w / 2 + 30, this.h - 290, 100, 48, () => this.play(), true);
+          if (myTurn && !this.session.auto) {
+            this.button("\u63D0\u793A", this.w / 2 - 185, this.h - 332, 150, 72, () => this.hint(), false, false, 33);
+            this.button(g.phase === "bury" ? "\u57CB\u5E95" : "\u51FA\u724C", this.w / 2 + 35, this.h - 332, 150, 72, () => this.play(), true, false, 33);
           }
-          if (!replay && (g.phase === "bidding" || ["playing", "bury"].includes(g.phase))) {
+          if ((this.session.online || g.phase !== "playing") && !replay && (g.phase === "bidding" || ["playing", "bury"].includes(g.phase))) {
             const seconds = Math.max(0, Math.ceil((g.deadline - Date.now() - this.session.offset) / 1e3)), rel = (g.turn - seat + 4) % 4;
-            let tx = this.w / 2, ty = g.phase === "bidding" ? this.h / 2 : this.h - 264;
+            let tx = this.w / 2, ty = g.phase === "bidding" ? this.h / 2 : this.h - 296;
             if (g.phase !== "bidding" && rel !== 0) {
               const [ax, ay] = pos[rel];
               tx = rel === 2 ? ax + 61 : rel === 3 ? ax - 72 : ax + 194;
@@ -1400,13 +1479,13 @@ var ChangwanGame = (() => {
           }
           const chosen = g.hand.filter((c) => this.selected.has(c.id));
           if (g.phase === "bury" && g.dealer === seat) this.text("\u5DF2\u9009 " + chosen.length + " / 8 \u5F20\u5E95\u724C", this.w / 2, this.h - 215, 21, "#ffe39b", "center");
-          else if (myTurn && g.plays.length && chosen.length && !E.legal(g.hand, chosen, this.lead(), g) && E.winner([...g.plays, { player: seat, cards: chosen }], g) === seat) this.text("\u60A8\u9009\u53D6\u7684\u724C\u5927\u4E8E\u5176\u4ED6\u73A9\u5BB6", this.w / 2, this.h - 315, 20, "#ffe39b", "center");
+          else if (myTurn && g.plays.length && chosen.length && !E.legal(g.hand, chosen, this.lead(), g) && E.winner([...g.plays, { player: seat, cards: chosen }], g) === seat) this.text("\u60A8\u9009\u53D6\u7684\u724C\u5927\u4E8E\u5176\u4ED6\u73A9\u5BB6", this.w / 2, this.h - 356, 20, "#ffe39b", "center");
           this.hand();
-          this.button(replay ? "\u8FD4\u56DE" : "\u4E0A\u8F6E", this.w - 125, this.h - 103, 96, 42, () => {
+          this.button(replay ? "\u8FD4\u56DE" : "\u4E0A\u8F6E", this.w + this.insetX / (2 * this.scale) - 128, this.h - 124, 116, 52, () => {
             this.replayUntil = replay ? 0 : Date.now() + 1500;
             this.session.replayUntil = this.replayUntil;
           }, false, !g.lastTrick.length);
-          this.button("\u5E95\u724C", this.w - 125, this.h - 53, 96, 42, () => {
+          this.button("\u5E95\u724C", this.w + this.insetX / (2 * this.scale) - 128, this.h - 62, 116, 52, () => {
             if (g.bottom.length) {
               this.showBottom = true;
               this.bottomUntil = Date.now() + 1500;
@@ -1414,18 +1493,69 @@ var ChangwanGame = (() => {
           });
           if (this.showBottom && Date.now() >= this.bottomUntil) this.showBottom = false;
           if (this.showBottom && g.bottom.length) {
-            this.rect(this.w / 2 - 360, 260, 720, 184, "rgba(21,60,48,.3)");
+            this.rect(this.w / 2 - 400, 260, 800, 232, "rgba(21,60,48,.3)");
             this.text("\u5E95\u724C " + E.points(g.bottom) + " \u5206", this.w / 2, 280, 22, "#f6dda0", "center");
-            this.cardsRow(g.bottom, this.w / 2, 302, 640, { width: 64 });
+            this.cardsRow(g.bottom, this.w / 2, 302, 720, { width: 64 * 16 / 9, step: 54 });
           }
         }
         hand() {
-          const g = this.room.game, hand = g.hand, width = 104, step = Math.min(46, (this.w - 320 - width) / Math.max(1, hand.length - 1)), start = this.w / 2 - (width + step * (hand.length - 1)) / 2, lead = this.lead(), cat = lead ? E.category(lead[0], g) : null, same = cat ? hand.filter((c) => E.category(c, g) === cat).length : 0, safe = this.settings.throw ? E.publicThrowIds(hand, g.publicCards, g) : /* @__PURE__ */ new Set(), tractors = E.tractorIds(hand, g);
+          const g = this.room.game, hand = g.hand, width = 149.76, step = Math.min(66.24, (this.w - 320 - width) / Math.max(1, hand.length - 1)), start = this.w / 2 - (width + step * (hand.length - 1)) / 2, lead = this.lead(), cat = lead ? E.category(lead[0], g) : null, same = cat ? hand.filter((c) => E.category(c, g) === cat).length : 0, safe = this.settings.throw ? E.publicThrowIds(hand, g.publicCards, g) : /* @__PURE__ */ new Set(), tractors = this.tractorHints(hand, g);
           hand.forEach((card, i) => {
-            const selected = this.selected.has(card.id), x = start + i * step, y = this.h - 180 - (selected ? 28 : 0);
-            this.card(card, x, y, width, { selected, stars: E.stars(card, g), dim: !!lead && same >= lead.length && E.category(card, g) !== cat, mark: this.forced?.has(card.id) ? "\u5FC5" : safe.has(card.id) ? "\u7529" : tractors.has(card.id) ? "\u8FDE\u5BF9" : "", bottom: g.phase === "bury" && g.bottom.some((c) => c.id === card.id) });
-            this.cards.push({ x, y, w: width, h: 156, id: card.id, index: i });
+            const selected = this.selected.has(card.id), x = start + i * step, y = this.h - 16 - width * 1.34 - (selected ? 30 : 0);
+            this.card(card, x, y, width, { selected, stars: E.stars(card, g), dim: !!lead && same >= lead.length && E.category(card, g) !== cat, mark: this.forced?.has(card.id) ? "\u5FC5" : safe.has(card.id) ? "\u7529" : "", tractor: tractors.has(card.id), bottom: g.phase === "bury" && g.bottom.some((c) => c.id === card.id) });
+            this.cards.push({ x, y, w: width, h: width * 1.34, id: card.id, index: i });
           });
+          this.tractorLabels(this.cards, tractors);
+          this.autoOverlay();
+        }
+        autoOverlay() {
+          if (!this.session.auto || !this.cards.length) return;
+          const left = Math.min(...this.cards.map((c) => c.x)), top = Math.min(...this.cards.map((c) => c.y)), right = Math.max(...this.cards.map((c) => c.x + c.w)), bottom = Math.max(...this.cards.map((c) => c.y + c.h));
+          this.rect(left, top, right - left, bottom - top, "rgba(0,0,0,.22)", 10);
+          this.cards = [];
+          this.button("\u56DE\u5230\u6E38\u620F", this.w / 2 - 110, (top + bottom) / 2 - 30, 220, 60, () => {
+            this.session.auto = false;
+            this.session.autoKey = null;
+          }, true);
+        }
+        tractorHints(hand, g) {
+          return /* @__PURE__ */ new Set([...E.tractorIds(hand.filter((c) => this.selected.has(c.id)), g), ...E.tractorIds(hand.filter((c) => !this.selected.has(c.id)), g)]);
+        }
+        tractorGroup(card, g) {
+          const pairs = E.pairs(g.hand.filter((c) => E.category(c, g) === E.category(card, g)), g), rank = E.rank(card, g), byRank = /* @__PURE__ */ new Map();
+          for (const pair of pairs) {
+            const r = E.rank(pair[0], g);
+            if (!byRank.has(r) || pair.some((c) => c.id === card.id)) byRank.set(r, pair);
+          }
+          if (!byRank.has(rank)) return [];
+          let low = rank, high = rank;
+          while (byRank.has(low - 1)) low--;
+          while (byRank.has(high + 1)) high++;
+          if (low === high) return [];
+          const ids = /* @__PURE__ */ new Set();
+          for (let r = low; r <= high; r++) for (const c of byRank.get(r)) ids.add(c.id);
+          return g.hand.filter((c) => ids.has(c.id));
+        }
+        tractorLabels(cards, ids) {
+          const hand = this.room.game.hand, ctx = this.room.game;
+          let run = [];
+          const flush = () => {
+            if (!run.length) return;
+            const first = run[0], last = run[run.length - 1], next = cards[cards.findIndex((card) => card.id === last.id) + 1], right = next ? Math.min(last.x + last.w, next.x) : last.x + last.w, span = right - first.x;
+            this.rect(first.x + 4, first.y + first.h - 34, Math.max(1, span - 8), 33, "rgba(48,48,48,.5)", 3);
+            this.text("\u62D6\u62C9\u673A", first.x + span / 2, first.y + first.h - 17, Math.min(21, (span - 6) / 4), "#fff9df", "center");
+            run = [];
+          };
+          for (const card of cards) {
+            const category = E.category(hand.find((c) => c.id === card.id), ctx);
+            if (!ids.has(card.id)) {
+              flush();
+              continue;
+            }
+            if (run.length && (card.y !== run[0].y || category !== run[0].category)) flush();
+            run.push({ ...card, category });
+          }
+          flush();
         }
         hint() {
           const g = this.room.game;
@@ -1442,27 +1572,29 @@ var ChangwanGame = (() => {
           this.session.command(g.phase === "bury" ? "bury" : "play", { cards: [...this.selected] });
         }
         buryView() {
-          const g = this.room.game, hand = g.hand, c = this.ctx, split = Math.ceil(hand.length / 2), width = 120, height = 180, startY = this.h * 0.38;
+          const g = this.room.game, hand = g.hand, c = this.ctx, split = Math.ceil(hand.length / 2), width = 144, height = 192.96, startY = this.h * 0.34;
           c.save();
           c.setTransform(this.pixel, 0, 0, this.pixel, 0, 0);
           c.fillStyle = "rgba(42,42,42,.72)";
           c.fillRect(0, 0, this.pw, this.ph);
           c.restore();
-          const actionY = startY - 100;
+          const actionY = startY - 120, tractors = this.tractorHints(hand, g);
           this.text("\u624B\u724C " + E.points(hand) + " \u5206   \xB7   \u4E3B\u724C " + hand.filter((card) => E.category(card, g) === "T").length + " \u5F20", 110, actionY + 26, 27, "#f3e5b6");
           this.text(Math.max(0, Math.ceil((g.deadline - Date.now() - this.session.offset) / 1e3)), this.w * 0.52, actionY + 26, 27, "#ffe195", "center");
-          this.button("\u63D0\u793A", this.w * 0.61, actionY, 145, 54, () => this.hint());
+          this.button("\u63D0\u793A", this.w * 0.58, actionY, 217.5, 81, () => this.hint(), false, false, 33);
           this.button("\u6263\u5E95 (" + this.selected.size + "/8)", this.w - 310, actionY, 210, 54, () => this.play(), true, this.selected.size !== 8);
           this.cards = [];
           for (let row = 0; row < 2; row++) {
             const list = hand.slice(row * split, (row + 1) * split), step = Math.min(90, (this.w - 220 - width) / Math.max(1, list.length - 1)), start = this.w / 2 - (width + step * (list.length - 1)) / 2;
             list.forEach((card, i) => {
               const selected = this.selected.has(card.id), x = start + i * step, y = startY + row * (height + 38) - (selected ? 22 : 0);
-              this.card(card, x, y, width, { selected, stars: E.stars(card, g), bottom: g.bottom.some((b) => b.id === card.id), mark: E.tractorIds(hand, g).has(card.id) ? "\u8FDE\u5BF9" : "" });
+              this.card(card, x, y, width, { selected, stars: E.stars(card, g), bottom: g.bottom.some((b) => b.id === card.id), tractor: tractors.has(card.id) });
               this.cards.push({ x, y, w: width, h: height, id: card.id, index: row * split + i });
             });
+            this.tractorLabels(this.cards.filter((card) => card.index >= row * split), tractors);
           }
-          this.text("\u91D1\u8272\u300C\u5E95\u300D\u4E3A\u521A\u83B7\u5F97\u7684\u5E95\u724C \xB7 \u9009\u62E9 8 \u5F20\u6263\u5E95", this.w / 2, startY + 2 * (height + 38) - 8, 20, "#e9d6a0", "center");
+          this.text("\u91D1\u8272\u8499\u7248\u4E3A\u521A\u83B7\u5F97\u7684\u5E95\u724C \xB7 \u9009\u62E9 8 \u5F20\u6263\u5E95", this.w / 2, startY + 2 * (height + 38) - 8, 20, "#e9d6a0", "center");
+          this.autoOverlay();
         }
         dimTable() {
           const c = this.ctx;
@@ -1559,11 +1691,11 @@ var ChangwanGame = (() => {
           }
         }
         modal() {
-          this.rect(0, 0, this.w, this.h, "#092a20cc", 0);
+          if (this.popup !== "settings") this.rect(0, 0, this.w, this.h, "#092a20cc", 0);
           this.hits = [];
           this.cards = [];
           const x = this.w / 2 - 440, y = this.h / 2 - 330;
-          this.rect(x, y, 880, 660, "#214d39");
+          if (this.popup !== "settings") this.rect(x, y, 880, 660, "#214d39");
           this.button("\xD7", x + 810, y + 12, 48, 42, () => this.popup = null);
           this.text(this.popup === "settings" ? "\u6E38\u620F\u8BBE\u7F6E" : this.popup === "rules" ? "\u6E38\u620F\u89C4\u5219" : "\u5BF9\u5C40\u6218\u7EE9", x + 35, y + 42, 30, "#ffe3a0");
           if (this.popup === "settings") {
@@ -1633,7 +1765,7 @@ var ChangwanGame = (() => {
           const p = this.point(e);
           if (!p) return;
           const card = this.hitCard(p);
-          if (card && this.room?.game?.phase !== "over") {
+          if (card && !this.session.auto && this.room?.game?.phase !== "over") {
             this.gesture = { start: card.index, end: card.index, snapshot: new Set(this.selected), remove: this.selected.has(card.id) };
             this.selectRange(card.index);
             return;
@@ -1664,7 +1796,13 @@ var ChangwanGame = (() => {
           let chosen = g.hand.slice(lo, hi + 1);
           if (lo === hi && this.settings.pair && limit !== 1) {
             const pair = g.hand.filter((c) => E.key(c) === E.key(chosen[0]));
-            if (pair.length === 2) chosen = pair;
+            if (pair.length === 2) {
+              chosen = pair;
+              if (!gesture.remove) {
+                const tractor = this.tractorGroup(chosen[0], g);
+                if (tractor.length && tractor.length <= limit && (!lead || tractor.length <= lead.length)) chosen = tractor;
+              }
+            }
           }
           this.selected = new Set(gesture.snapshot);
           if (gesture.remove) {

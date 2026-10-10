@@ -1,7 +1,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const esbuild=require('esbuild'),{chromium}=require('@playwright/test');
 const root=path.resolve(__dirname,'..'),out=path.join(root,'微信小游戏'),stage=path.join(root,'artifacts/minigame-build');
-const put=(file,data)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,data);};
+const put=(file,data)=>{const bytes=Buffer.isBuffer(data)?data:Buffer.from(data);if(fs.existsSync(file)&&fs.readFileSync(file).equals(bytes))return;fs.mkdirSync(path.dirname(file),{recursive:true});for(let attempt=0;;attempt++){try{fs.writeFileSync(file,bytes);break;}catch(error){if(attempt>=8||!['UNKNOWN','EBUSY','EPERM'].includes(error.code))throw error;Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,100);}}};
 (async()=>{
  fs.mkdirSync(stage,{recursive:true});fs.mkdirSync(out,{recursive:true});
  let core=fs.readFileSync(path.join(root,'backend/game.ts'),'utf8').replace("import { createRequire } from 'node:module';",'').replace("import { randomInt,randomUUID } from 'node:crypto';",'const randomInt=(min,max)=>Math.floor(Math.random()*(max-min))+min; let serial=0;const randomUUID=()=>Date.now().toString(36)+"-"+(++serial);').replace("export const E=createRequire(import.meta.url)('../engine.js');","export const E=require('./engine.js');").replace('structuredClone(g.plays)','JSON.parse(JSON.stringify(g.plays))');
