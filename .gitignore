@@ -3,3 +3,5 @@ artifacts/
 test-results/
 data/
 .env
+
+**/project.private.config.json

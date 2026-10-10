@@ -55,7 +55,10 @@ export async function createServer(options:{db?:string;clock?:()=>number;timers?
   const wss=new WebSocketServer({noServer:true,maxPayload:4096});
   app.server.on('upgrade',(req,socket,head)=>{
     const origin=req.headers.origin;
-    if(req.url!=='/ws'||(origin&&origin!==`http://${req.headers.host}`&&origin!==`https://${req.headers.host}`)){socket.destroy();return;}
+    // Native WeChat sockets still authenticate with our token after the handshake.
+    // Explicit opt-in keeps browser origins restricted on other deployments.
+    const wechatOrigin=process.env.ALLOW_WECHAT_ORIGIN==='1'&&origin==='https://servicewechat.com';
+    if(req.url!=='/ws'||(origin&&!wechatOrigin&&origin!==`http://${req.headers.host}`&&origin!==`https://${req.headers.host}`)){socket.destroy();return;}
     wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,req));
   });
   wss.on('connection',ws=>{

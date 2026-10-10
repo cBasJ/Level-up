@@ -1,0 +1,10 @@
+{
+  "deviceOrientation": "landscape",
+  "showStatusBar": false,
+  "subpackages": [
+    {
+      "name": "sound",
+      "root": "sound/"
+    }
+  ]
+}

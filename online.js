@@ -53,11 +53,11 @@ function render(){
   $('lobby').hidden=!!room;$('table').hidden=!room;document.body.classList.toggle('in-room',!!room);if(!room){$('onlineApp').removeAttribute('style');return;}
   const g=room.game,seat=room.seat,rel=p=>(p-seat+4)%4;
   $('table').dataset.phase=g?.phase||'waiting';
-  $('leave').hidden=!!g&&g.phase!=='over';$('players').replaceChildren();
+  $('leave').hidden=!!g&&g.phase!=='over';$('table').append($('countdown'));$('players').replaceChildren();
   room.members.forEach((m,p)=>{const node=document.createElement('div');node.className=`seat seat-${rel(p)}`+(g?.phase==='playing'&&g.turn===p?' active':'');
     const avatar=document.createElement('span');avatar.className=`avatar avatar-${m.avatar||0}`;const name=document.createElement('b');name.textContent=m.name+(p===seat?'（你）':p%2===seat%2?' · 队友':'')+(g?.dealer===p?' 庄':'');const status=document.createElement('small');status.textContent=(m.online?'在线':'离线 · 超时托管')+' · '+(g?g.counts[p]+' 张':m.ready?'已准备':'待准备');node.append(avatar,name,status);
     if(g&&hints.void&&p!==seat){const missing=document.createElement('div');missing.className='void';missing.textContent=g.voids[p].map(s=>s==='T'?'主':E.symbol[s]).join(' ');node.append(missing);}
-    if(g?.currentBid?.player===p&&!['dealing','bidding'].includes(g.phase)){const bid=document.createElement('span');bid.className='mini-bid';bid.textContent=g.currentBid.cards.map(c=>E.label(c.r)+E.symbol[c.s]).join(' ');node.append(bid);}
+    if(g?.currentBid?.player===p&&!['dealing','bidding'].includes(g.phase)){const bid=document.createElement('span');bid.className='mini-bid';bid.textContent=g.currentBid.cards.map(c=>E.label(c.r)+E.symbol[c.s]).join(' ');avatar.append(bid);}
     $('players').append(node);
   });
   $('roomLabel').textContent=`好友房 ${room.code} · ${room.members.length}/4 人 · ${room.settings?.turnSeconds||30}秒 · ${room.settings?.maxRounds?room.settings.maxRounds+'局':'打到A'}`;
@@ -124,7 +124,7 @@ function selectRange(end){const g=room.game,lo=Math.min(drag.start,end),hi=Math.
 document.addEventListener('pointermove',e=>{if(!drag)return;drag.start=room.game.hand.findIndex(c=>c.id===drag.anchor);if(drag.start<0){drag=null;return;}const node=document.elementFromPoint(e.clientX,e.clientY)?.closest('#hand [data-id]');if(node)selectRange(room.game.hand.findIndex(c=>c.id===node.dataset.id));});document.addEventListener('pointerup',e=>{drag=null;if($('hand').hasPointerCapture(e.pointerId))$('hand').releasePointerCapture(e.pointerId);});document.addEventListener('pointercancel',()=>drag=null);
 window.addEventListener('resize',layout);
 window.visualViewport?.addEventListener('resize',layout);
-function updateCountdown(){const g=room?.game,visible=g&&['bidding','bury','playing'].includes(g.phase);$('countdown').hidden=!visible;if(visible){const seconds=Math.max(0,Math.ceil((g.deadline-Date.now()-offset)/1000));$('countdown').textContent=seconds;$('countdown').classList.toggle('urgent',seconds<=5);}}
+function updateCountdown(){const g=room?.game,visible=g&&!replay&&['bidding','bury','playing'].includes(g.phase),timer=$('countdown');timer.hidden=!visible;if(visible){const seconds=Math.max(0,Math.ceil((g.deadline-Date.now()-offset)/1000)),other=g.phase!=='bidding'&&g.turn!==room.seat,target=other?document.querySelector('#players .seat-'+((g.turn-room.seat+4)%4)):(g.phase==='bidding'?$('table'):document.querySelector('.turn-status'));target?.append(timer);timer.classList.toggle('avatar-countdown',other);timer.classList.toggle('bid-countdown',g.phase==='bidding');timer.textContent=seconds;timer.classList.toggle('urgent',seconds<=5);}}
 setInterval(updateCountdown,250);
 connect();
 })();

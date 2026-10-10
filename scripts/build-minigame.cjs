@@ -1,0 +1,23 @@
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const esbuild=require('esbuild'),{chromium}=require('@playwright/test');
+const root=path.resolve(__dirname,'..'),out=path.join(root,'微信小游戏'),stage=path.join(root,'artifacts/minigame-build');
+const put=(file,data)=>{fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,data);};
+(async()=>{
+ fs.mkdirSync(stage,{recursive:true});fs.mkdirSync(out,{recursive:true});
+ let core=fs.readFileSync(path.join(root,'backend/game.ts'),'utf8').replace("import { createRequire } from 'node:module';",'').replace("import { randomInt,randomUUID } from 'node:crypto';",'const randomInt=(min,max)=>Math.floor(Math.random()*(max-min))+min; let serial=0;const randomUUID=()=>Date.now().toString(36)+"-"+(++serial);').replace("export const E=createRequire(import.meta.url)('../engine.js');","export const E=require('./engine.js');").replace('structuredClone(g.plays)','JSON.parse(JSON.stringify(g.plays))');
+ put(path.join(stage,'authority.js'),(await esbuild.transform(core,{loader:'ts',format:'cjs',target:'es2020'})).code);fs.copyFileSync(path.join(root,'engine.js'),path.join(stage,'engine.js'));
+ const audio=fs.readFileSync(path.join(root,'game-audio.js'),'utf8'),first=audio.slice(audio.indexOf(' const number='),audio.indexOf(' function say(text)')),second=audio.slice(audio.indexOf(' function bidAnnouncement('),audio.indexOf(' effectsButton.onclick='));
+ put(path.join(stage,'callouts.js'),"const Tractor=require('./engine');\n"+first+second+'\nmodule.exports={announcement,bidAnnouncement};');
+ const maps={};for(const [key,folder,varname] of [['female','assets/voice','TRACTOR_VOICE_CLIPS'],['male','assets/voice/male','TRACTOR_MALE_VOICE_CLIPS']]){const sandbox={window:{}};vm.runInNewContext(fs.readFileSync(path.join(root,folder,'voice-clips.js'),'utf8'),sandbox);maps[key]=Object.fromEntries(Object.entries(sandbox.window[varname]).map(([text,file])=>[text,'sound/'+key+'/'+path.basename(file,'.wav')+'.mp3']));}
+ maps.scores=Object.fromEntries([80,120,160].map(n=>['破'+n,'sound/score-'+n+'.mp3']));put(path.join(stage,'voice-map.js'),'module.exports='+JSON.stringify(maps)+';');
+ const configPath=path.join(root,'minigame/config.json');if(!fs.existsSync(configPath))put(configPath,JSON.stringify({server:'http://127.0.0.1:4173'},null,2));
+ await esbuild.build({entryPoints:[path.join(root,'minigame/main.js')],outfile:path.join(out,'game.js'),bundle:true,platform:'neutral',format:'iife',target:'es2020',footer:{js:'GameGlobal.changwanGame = new ChangwanGame();'},globalName:'ChangwanGame',plugins:[{name:'shared-rules',setup(build){build.onResolve({filter:/^\.\/(authority|callouts|voice-map|config)$/},args=>({path:args.path==='./config'?configPath:path.join(stage,args.path+'.js')}));}}]});
+ // Export class is a CommonJS module; the IIFE global is the class itself.
+ put(path.join(out,'game.json'),JSON.stringify({deviceOrientation:'landscape',showStatusBar:false,subpackages:[{name:'sound',root:'sound/'}]},null,2));
+ const project=path.join(out,'project.config.json');if(!fs.existsSync(project))put(project,JSON.stringify({description:'畅玩升级 · 微信小游戏本地调试工程',projectname:'畅玩升级',appid:'touristappid',compileType:'game',libVersion:'latest',setting:{urlCheck:false,es6:true,minified:true},packOptions:{ignore:[{type:'file',value:'README.md'},{type:'file',value:'build-report.json'}]}},null,2));
+ const browser=await chromium.launch({channel:'chrome',headless:true});try{const page=await browser.newPage();const images=[['assets/garden-table.png','assets/garden.jpg',1440],['assets/avatars.png','assets/avatars.jpg',512],...fs.readdirSync(path.join(root,'assets/cards')).filter(n=>n.endsWith('.png')).map(n=>['assets/cards/'+n,'assets/cards/'+n.replace('.png','.jpg'),300])];
+ for(const [src,dest,width] of images){const bytes=fs.readFileSync(path.join(root,src));const data=await page.evaluate(async({data,width})=>{const im=new Image();im.src=data;await im.decode();const canvas=document.createElement('canvas');canvas.width=width;canvas.height=Math.round(im.height*width/im.width);const c=canvas.getContext('2d');c.fillStyle='#fffdf9';c.fillRect(0,0,canvas.width,canvas.height);c.drawImage(im,0,0,canvas.width,canvas.height);return canvas.toDataURL('image/jpeg',.86).split(',')[1];},{data:'data:image/png;base64,'+bytes.toString('base64'),width});put(path.join(out,dest),Buffer.from(data,'base64'));}
+ }finally{await browser.close();}
+ put(path.join(out,'sound/game.js'),'// Audio-only subpackage.\n');
+ console.log('小游戏界面、规则和图片已生成。运行音频构建后导入：'+out);
+})().catch(e=>{console.error(e);process.exitCode=1});
